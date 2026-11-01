@@ -26,7 +26,6 @@ constexpr std::uint64_t kLinuxUserAddressEnd = 0x800000000000;
 constexpr std::uint64_t kLazyPltGotBytes = 24;
 constexpr std::uint64_t kPltGotEntryBytes = 8;
 constexpr std::uint64_t kLinuxPageSize = 4096;
-// Linux PROT_* bit values; keep this file independent of host sys/mman.h.
 constexpr std::uint64_t kMprotectRead = 0x1;
 constexpr std::uint64_t kMprotectWrite = 0x2;
 constexpr std::uint64_t kMprotectExecute = 0x4;
