@@ -45,6 +45,47 @@ int main() {
         return 1;
     }
 
+
+    // Sweep ordinary widths for every supported format against an independent
+    // bit-count reference, including widths that require row padding.
+    constexpr struct {
+        cairo_format_t format;
+        std::uint32_t bits_per_pixel;
+    } formats[] = {
+        {CAIRO_FORMAT_ARGB32, 32},
+        {CAIRO_FORMAT_RGB24, 32},
+        {CAIRO_FORMAT_A8, 8},
+        {CAIRO_FORMAT_A1, 1},
+        {CAIRO_FORMAT_RGB16_565, 16},
+        {CAIRO_FORMAT_RGB30, 32},
+        {CAIRO_FORMAT_RGB96F, 96},
+        {CAIRO_FORMAT_RGBA128F, 128},
+    };
+
+    for (const auto& format : formats) {
+        for (std::uint32_t width = 0; width <= 1024; ++width) {
+            const std::uint64_t row_bytes =
+                (static_cast<std::uint64_t>(width) * format.bits_per_pixel + 7u) / 8u;
+            const int expected = static_cast<int>((row_bytes + 3u) & ~std::uint64_t{3});
+            const int actual = cairo_format_stride_for_width(
+                format.format, static_cast<int>(width));
+            if (actual != expected) {
+                std::fprintf(stderr, "format %d width %u: expected %d, got %d\\n",
+                             static_cast<int>(format.format), width, expected, actual);
+                return 1;
+            }
+        }
+
+        const std::uint32_t first_rejected_width =
+            static_cast<std::uint32_t>((INT32_MAX - 7) / format.bits_per_pixel);
+        if (cairo_format_stride_for_width(
+                format.format, static_cast<int>(first_rejected_width)) != -1) {
+            std::fprintf(stderr, "format %d did not reject overflow boundary\\n",
+                         static_cast<int>(format.format));
+            return 1;
+        }
+    }
+
     std::puts("guest cairo format-stride tests passed");
     return 0;
 }
