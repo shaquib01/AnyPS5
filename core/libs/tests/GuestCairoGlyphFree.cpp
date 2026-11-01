@@ -5,12 +5,12 @@
 #include <cstdlib>
 #include <type_traits>
 
-struct CairoGlyph {
+struct _cairo_glyph {
     std::uint64_t index;
     double x;
     double y;
 };
-static_assert(sizeof(CairoGlyph) == 24);
+static_assert(sizeof(cairo_glyph_t) == 24);
 
 using GlyphFree = void (APS5_VABI*)(CairoGlyph*);
 static_assert(std::is_same_v<decltype(&cairo_glyph_free), GlyphFree>);
