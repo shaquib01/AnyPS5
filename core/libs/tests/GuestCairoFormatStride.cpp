@@ -6,6 +6,15 @@
 
 using StrideForWidth = int (APS5_VABI*)(cairo_format_t, int);
 static_assert(std::is_same_v<decltype(&cairo_format_stride_for_width), StrideForWidth>);
+static_assert(CAIRO_FORMAT_INVALID == -1);
+static_assert(CAIRO_FORMAT_ARGB32 == 0);
+static_assert(CAIRO_FORMAT_RGB24 == 1);
+static_assert(CAIRO_FORMAT_A8 == 2);
+static_assert(CAIRO_FORMAT_A1 == 3);
+static_assert(CAIRO_FORMAT_RGB16_565 == 4);
+static_assert(CAIRO_FORMAT_RGB30 == 5);
+static_assert(CAIRO_FORMAT_RGB96F == 6);
+static_assert(CAIRO_FORMAT_RGBA128F == 7);
 
 struct TestCase {
     cairo_format_t format;
