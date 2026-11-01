@@ -70,7 +70,7 @@ int main() {
             const int actual = cairo_format_stride_for_width(
                 format.format, static_cast<int>(width));
             if (actual != expected) {
-                std::fprintf(stderr, "format %d width %u: expected %d, got %d\\n",
+                std::fprintf(stderr, "format %d width %u: expected %d, got %d\n",
                              static_cast<int>(format.format), width, expected, actual);
                 return 1;
             }
@@ -80,7 +80,7 @@ int main() {
             static_cast<std::uint32_t>((INT32_MAX - 7) / format.bits_per_pixel);
         if (cairo_format_stride_for_width(
                 format.format, static_cast<int>(first_rejected_width)) != -1) {
-            std::fprintf(stderr, "format %d did not reject overflow boundary\\n",
+            std::fprintf(stderr, "format %d did not reject overflow boundary\n",
                          static_cast<int>(format.format));
             return 1;
         }
