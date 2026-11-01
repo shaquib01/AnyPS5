@@ -2,7 +2,8 @@
 
 #include "SceTypes.hpp"
 
-struct CairoGlyph;
+struct _cairo_glyph;
+typedef struct _cairo_glyph cairo_glyph_t;
 
 extern "C" {
 
@@ -134,7 +135,7 @@ int APS5_VABI cairo_image_surface_get_width();
 int APS5_VABI cairo_font_options_create();
 int APS5_VABI cairo_device_to_user();
 int APS5_VABI cairo_font_options_set_antialias();
-void APS5_VABI cairo_glyph_free(CairoGlyph* glyphs);
+void APS5_VABI cairo_glyph_free(cairo_glyph_t* glyphs);
 int APS5_VABI cairo_select_font_face();
 int APS5_VABI cairo_line_to();
 int APS5_VABI cairo_scaled_font_reference();
