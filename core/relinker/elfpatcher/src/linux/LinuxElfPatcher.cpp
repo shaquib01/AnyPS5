@@ -303,15 +303,25 @@ std::uint64_t TracePageProtection(const std::vector<Domain::ProgramHeader>& head
     if (page > std::numeric_limits<std::uint64_t>::max() - kLinuxPageSize)
         throw Domain::RelinkerException("Import slot page overflows while tracing imports", slot);
     const auto pageEnd = page + kLinuxPageSize;
-    bool executable = false;
+    std::vector<const Domain::ProgramHeader*> loads;
     for (const auto& header : headers) {
         if (header.Type != PT_LOAD || header.MemorySize == 0)
             continue;
         if (header.MappedAddress > std::numeric_limits<std::uint64_t>::max() - header.MemorySize)
             throw Domain::RelinkerException("PT_LOAD memory range overflows while tracing imports", header.MappedAddress);
-        const auto end = header.MappedAddress + header.MemorySize;
-        if (header.MappedAddress < pageEnd && end > page)
-            executable = (header.Flags & PF_X) != 0;
+        loads.push_back(&header);
+    }
+    std::stable_sort(loads.begin(), loads.end(), [](const auto* left, const auto* right) {
+        return left->MappedAddress < right->MappedAddress;
+    });
+    bool executable = false;
+    for (const auto* load : loads) {
+        const auto end = load->MappedAddress + load->MemorySize;
+        if (load->MappedAddress >= pageEnd || end <= page)
+            continue;
+        // Match ProgramHeaderLayoutBuilder::_fixLoadFlags and its sorted PT_LOAD output order.
+        const auto effectiveFlags = load->Flags == 0 ? (PF_R | PF_W | PF_X) : (load->Flags | PF_R);
+        executable = (effectiveFlags & PF_X) != 0;
     }
     return kMprotectRead | kMprotectWrite | (executable ? kMprotectExecute : 0);
 }
