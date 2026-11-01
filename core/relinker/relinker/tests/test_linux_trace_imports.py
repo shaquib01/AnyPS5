@@ -102,19 +102,20 @@ def main():
 
 
         if runnable:
-            for name, base, non_executable in (
-                    ("permission-default", 0x400000, True),
-                    ("permission-fixed", 0x400000, True),
-                    ("permission-above-4g", 0x1000000000, True),
-                    ("permission-executable-page", 0x400000, False)):
+            for name, base, slot_flags in (
+                    ("permission-default", 0x400000, 6),
+                    ("permission-fixed", 0x400000, 6),
+                    ("permission-above-4g", 0x1000000000, 6),
+                    ("permission-executable-page", 0x400000, None),
+                    ("permission-zero-flags", 0x400000, 0)):
                 case = work / name
                 case.mkdir()
                 image = executable("a.prx", extra_dependencies=("libc.prx",))
-                slot = 0x5a20 if non_executable else 0x4a20
+                slot = 0x4a20 if slot_flags is None else 0x5a20
                 struct.pack_into("<Q", image, 0x4900, slot)
-                if non_executable:
+                if slot_flags is not None:
                     struct.pack_into("<IIQQQQQQ", image, 64 + 2 * 56,
-                                     1, 6, 0x5000, 0x5000, 0x5000, 0x1000, 0x1000, 0x1000)
+                                     1, slot_flags, 0x5000, 0x5000, 0x5000, 0x1000, 0x1000, 0x1000)
                 image[0x4000:0x4011] = (bytes.fromhex("48 bf") + struct.pack("<Q", base + slot)
                                         + bytes.fromhex("ff 15") + struct.pack("<i", slot - 0x4010) + bytes.fromhex("c3"))
                 source = case / "input.elf"
@@ -130,7 +131,7 @@ def main():
                 (case / "libs" / "libc.prx").write_bytes(libraries["passthrough"])
                 output.chmod(0o755)
                 run = subprocess.run([str(output)], capture_output=True, text=True, timeout=30)
-                expected = 11 if non_executable else 90
+                expected = 11 if slot_flags == 6 else 90
                 assert run.returncode == expected, (name, run.returncode, run.stdout, run.stderr)
 
         case = work / "without-libc"
