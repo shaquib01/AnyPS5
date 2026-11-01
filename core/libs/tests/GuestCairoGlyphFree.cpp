@@ -1,8 +1,16 @@
 #include "prx/libcairo/include/InventoryExports.hpp"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <type_traits>
+
+struct CairoGlyph {
+    std::uint64_t index;
+    double x;
+    double y;
+};
+static_assert(sizeof(CairoGlyph) == 24);
 
 using GlyphFree = void (APS5_VABI*)(CairoGlyph*);
 static_assert(std::is_same_v<decltype(&cairo_glyph_free), GlyphFree>);
@@ -10,7 +18,7 @@ static_assert(std::is_same_v<decltype(&cairo_glyph_free), GlyphFree>);
 int main() {
     cairo_glyph_free(nullptr);
 
-    auto* glyphs = static_cast<CairoGlyph*>(std::malloc(sizeof(std::uint64_t) * 3 * 3));
+    auto* glyphs = static_cast<CairoGlyph*>(std::malloc(sizeof(CairoGlyph) * 3));
     if (glyphs == nullptr) {
         std::fputs("could not allocate test glyph array\n", stderr);
         return 1;
