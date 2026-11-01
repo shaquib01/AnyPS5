@@ -615,7 +615,6 @@ std::vector<std::uint8_t> LinuxElfPatcher::Patch(
             Io::WriteU64(buf, traceEntries[index], relative(traced[index].Slot));
             Io::WriteU64(buf, traceEntries[index] + 8, relative(addString(traced[index].Name)));
             Io::WriteU64(buf, traceEntries[index] + 16, relative(addString(traced[index].Library)));
-            Io::WriteU64(buf, traceEntries[index] + 24, TracePageProtection(headers, traced[index].Slot));
         }
     }
 
@@ -655,6 +654,10 @@ std::vector<std::uint8_t> LinuxElfPatcher::Patch(
 
     auto headers = originalHeaders;
     SeparateSharedLoadPages(buf, headers);
+    if (_traceImports) {
+        for (std::size_t index = 0; index < traced.size(); ++index)
+            Io::WriteU64(buf, traceEntries[index] + 24, TracePageProtection(headers, traced[index].Slot));
+    }
 
     ProgramHeaderLayoutRequest layoutRequest{};
     layoutRequest.PhOff = tableOff;
