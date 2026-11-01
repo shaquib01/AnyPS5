@@ -1275,3 +1275,17 @@ endif()
 
 include(prx/libSceFreeType/CurveBounds.cmake)
 include(prx/libSceBeisobmf/Tests.cmake)
+
+
+if(BUILD_TESTING)
+    add_test_executable(guest_cairo_glyph_free_tests tests/GuestCairoGlyphFree.cpp)
+    target_include_directories(guest_cairo_glyph_free_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(guest_cairo_glyph_free_tests PRIVATE libcairo libc)
+    configure_windows_unwind(guest_cairo_glyph_free_tests)
+    add_test(NAME guest_cairo_glyph_free COMMAND guest_cairo_glyph_free_tests)
+    set_tests_properties(guest_cairo_glyph_free PROPERTIES TIMEOUT 20)
+    if(WIN32)
+        set_tests_properties(guest_cairo_glyph_free PROPERTIES ENVIRONMENT_MODIFICATION
+            "PATH=path_list_prepend:$<TARGET_FILE_DIR:libcairo>")
+    endif()
+endif()
