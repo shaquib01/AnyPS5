@@ -12,13 +12,13 @@ struct _cairo_glyph {
 };
 static_assert(sizeof(cairo_glyph_t) == 24);
 
-using GlyphFree = void (APS5_VABI*)(CairoGlyph*);
+using GlyphFree = void (APS5_VABI*)(cairo_glyph_t*);
 static_assert(std::is_same_v<decltype(&cairo_glyph_free), GlyphFree>);
 
 int main() {
     cairo_glyph_free(nullptr);
 
-    auto* glyphs = static_cast<CairoGlyph*>(std::malloc(sizeof(CairoGlyph) * 3));
+    auto* glyphs = static_cast<cairo_glyph_t*>(std::malloc(sizeof(cairo_glyph_t) * 3));
     if (glyphs == nullptr) {
         std::fputs("could not allocate test glyph array\n", stderr);
         return 1;
