@@ -152,7 +152,6 @@
 | `cairo_set_font_face` | `qzEwpfbLVxI` |
 | `cairo_close_path` | `rENdf2qgOE4` |
 | `cairo_image_surface_create` | `ry52QkQeAWo` |
-| `cairo_format_stride_for_width` | `s9BsLfgWTeM` |
 | `cairo_create` | `sfmawT-nIUc` |
 | `cairo_get_current_point` | `sinmW4Wm6OQ` |
 | `cairo_move_to` | `smpeN8iWrcc` |
