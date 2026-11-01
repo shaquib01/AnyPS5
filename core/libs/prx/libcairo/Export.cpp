@@ -2,6 +2,8 @@
 #include "prx/libc/include/General.hpp"
 #include "prx/libc/include/general/ExportMacros.hpp"
 #include <cstdlib>
+#include <cstdint>
+#include <climits>
 
 extern "C" {
 
@@ -573,8 +575,44 @@ int APS5_VABI cairo_image_surface_create() {
     NotImplemented_nid_no_patch(__func__);
 }
 
-int APS5_VABI cairo_format_stride_for_width() {
-    NotImplemented_nid_no_patch(__func__);
+int APS5_VABI cairo_format_stride_for_width(cairo_format_t format, int width) {
+    int bits_per_pixel = 0;
+    switch (format) {
+    case CAIRO_FORMAT_ARGB32:
+    case CAIRO_FORMAT_RGB24:
+    case CAIRO_FORMAT_RGB30:
+        bits_per_pixel = 32;
+        break;
+    case CAIRO_FORMAT_A8:
+        bits_per_pixel = 8;
+        break;
+    case CAIRO_FORMAT_A1:
+        bits_per_pixel = 1;
+        break;
+    case CAIRO_FORMAT_RGB16_565:
+        bits_per_pixel = 16;
+        break;
+    case CAIRO_FORMAT_RGB96F:
+        bits_per_pixel = 96;
+        break;
+    case CAIRO_FORMAT_RGBA128F:
+        bits_per_pixel = 128;
+        break;
+    case CAIRO_FORMAT_INVALID:
+    default:
+        return -1;
+    }
+
+    // Match Cairo's overflow guard before computing the aligned row size.
+    if (static_cast<std::uint32_t>(width) >=
+        static_cast<std::uint32_t>((INT32_MAX - 7) / bits_per_pixel)) {
+        return -1;
+    }
+
+    const auto row_bits = static_cast<std::uint32_t>(width) *
+                          static_cast<std::uint32_t>(bits_per_pixel);
+    const auto row_bytes = (row_bits + 7u) / 8u;
+    return static_cast<int>((row_bytes + 3u) & ~3u);
 }
 
 int APS5_VABI cairo_create() {
