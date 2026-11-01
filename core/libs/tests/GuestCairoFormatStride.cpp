@@ -46,8 +46,6 @@ int main() {
     }
 
 
-    // Sweep ordinary widths for every supported format against an independent
-    // bit-count reference, including widths that require row padding.
     constexpr struct {
         cairo_format_t format;
         std::uint32_t bits_per_pixel;
