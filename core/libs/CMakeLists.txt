@@ -1276,7 +1276,6 @@ endif()
 include(prx/libSceFreeType/CurveBounds.cmake)
 include(prx/libSceBeisobmf/Tests.cmake)
 
-
 if(BUILD_TESTING)
     add_test_executable(guest_cairo_glyph_free_tests tests/GuestCairoGlyphFree.cpp)
     target_include_directories(guest_cairo_glyph_free_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
