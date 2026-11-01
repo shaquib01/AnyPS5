@@ -603,7 +603,6 @@ int APS5_VABI cairo_format_stride_for_width(cairo_format_t format, int width) {
         return -1;
     }
 
-    // Match Cairo's overflow guard before computing the aligned row size.
     if (static_cast<std::uint32_t>(width) >=
         static_cast<std::uint32_t>((INT32_MAX - 7) / bits_per_pixel)) {
         return -1;
