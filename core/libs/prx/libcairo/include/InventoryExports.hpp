@@ -2,6 +2,18 @@
 
 #include "SceTypes.hpp"
 
+enum cairo_format_t : std::int32_t {
+    CAIRO_FORMAT_INVALID = 0,
+    CAIRO_FORMAT_ARGB32 = 1,
+    CAIRO_FORMAT_RGB24 = 2,
+    CAIRO_FORMAT_A8 = 3,
+    CAIRO_FORMAT_A1 = 4,
+    CAIRO_FORMAT_RGB16_565 = 5,
+    CAIRO_FORMAT_RGB30 = 6,
+    CAIRO_FORMAT_RGB96F = 7,
+    CAIRO_FORMAT_RGBA128F = 8,
+};
+
 struct _cairo_glyph;
 typedef struct _cairo_glyph cairo_glyph_t;
 
@@ -149,7 +161,7 @@ int APS5_VABI cairo_show_text();
 int APS5_VABI cairo_set_font_face();
 int APS5_VABI cairo_close_path();
 int APS5_VABI cairo_image_surface_create();
-int APS5_VABI cairo_format_stride_for_width();
+int APS5_VABI cairo_format_stride_for_width(cairo_format_t format, int width);
 int APS5_VABI cairo_create();
 int APS5_VABI cairo_get_current_point();
 int APS5_VABI cairo_move_to();
