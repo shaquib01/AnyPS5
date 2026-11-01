@@ -134,7 +134,6 @@
 | `cairo_font_options_create` | `j2xKmRzIV84` |
 | `cairo_device_to_user` | `jyf32aEUoMs` |
 | `cairo_font_options_set_antialias` | `kNua19l9-0I` |
-| `cairo_glyph_free` | `lAEbTbSUTTo` |
 | `cairo_select_font_face` | `ldk9m5h+-no` |
 | `cairo_line_to` | `mSda1B-vfkM` |
 | `cairo_scaled_font_reference` | `mb4bdMeFRs8` |
