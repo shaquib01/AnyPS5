@@ -517,7 +517,7 @@ int APS5_VABI cairo_font_options_set_antialias() {
     NotImplemented_nid_no_patch(__func__);
 }
 
-void APS5_VABI cairo_glyph_free(CairoGlyph* glyphs) {
+void APS5_VABI cairo_glyph_free(cairo_glyph_t* glyphs) {
     std::free(glyphs);
 }
 
