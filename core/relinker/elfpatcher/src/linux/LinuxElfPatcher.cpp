@@ -25,6 +25,10 @@ namespace {
 constexpr std::uint64_t kLinuxUserAddressEnd = 0x800000000000;
 constexpr std::uint64_t kLazyPltGotBytes = 24;
 constexpr std::uint64_t kPltGotEntryBytes = 8;
+constexpr std::uint64_t kLinuxPageSize = 4096;
+constexpr std::uint64_t kMprotectRead = 0x1;
+constexpr std::uint64_t kMprotectWrite = 0x2;
+constexpr std::uint64_t kMprotectExecute = 0x4;
 
 std::string Hex(const std::uint64_t value) {
     std::ostringstream text;
@@ -293,6 +297,33 @@ Domain::SysVDynamicSection ImportsByNid(Domain::SysVDynamicSection dynSection) {
     return dynSection;
 }
 
+std::uint64_t TracePageProtection(const std::vector<Domain::ProgramHeader>& headers, const std::uint64_t slot) {
+    const auto page = slot & ~(kLinuxPageSize - 1);
+    if (page > std::numeric_limits<std::uint64_t>::max() - kLinuxPageSize)
+        throw Domain::RelinkerException("Import slot page overflows while tracing imports", slot);
+    const auto pageEnd = page + kLinuxPageSize;
+    std::vector<const Domain::ProgramHeader*> loads;
+    for (const auto& header : headers) {
+        if (header.Type != PT_LOAD || header.MemorySize == 0)
+            continue;
+        if (header.MappedAddress > std::numeric_limits<std::uint64_t>::max() - header.MemorySize)
+            throw Domain::RelinkerException("PT_LOAD memory range overflows while tracing imports", header.MappedAddress);
+        loads.push_back(&header);
+    }
+    std::stable_sort(loads.begin(), loads.end(), [](const auto* left, const auto* right) {
+        return left->MappedAddress < right->MappedAddress;
+    });
+    bool executable = false;
+    for (const auto* load : loads) {
+        const auto end = load->MappedAddress + load->MemorySize;
+        if (load->MappedAddress >= pageEnd || end <= page)
+            continue;
+        const auto effectiveFlags = load->Flags == 0 ? (PF_R | PF_W | PF_X) : (load->Flags | PF_R);
+        executable = (effectiveFlags & PF_X) != 0;
+    }
+    return kMprotectRead | kMprotectWrite | (executable ? kMprotectExecute : 0);
+}
+
 std::vector<std::uint8_t> TracePrologue(const std::uint64_t vaddr, const std::uint64_t table, const std::uint64_t tableEnd, const std::uint64_t function) {
     std::vector<std::uint8_t> code = {0x52, 0x53, 0x41, 0x54, 0x48, 0x83, 0xec, 0x08};
     const auto rip = [&](std::initializer_list<std::uint8_t> opcode, const std::uint64_t target) {
@@ -309,8 +340,8 @@ std::vector<std::uint8_t> TracePrologue(const std::uint64_t vaddr, const std::ui
     const auto exit = code.size();
     code.insert(code.end(), {0x48, 0x8b, 0x03, 0x48, 0x8b, 0x3c, 0x03, 0x48, 0x8b, 0x73, 0x08, 0x48, 0x01, 0xde, 0x48, 0x8b, 0x53, 0x10, 0x48, 0x01, 0xda});
     rip({0xff, 0x15}, function);
-    code.insert(code.end(), {0x48, 0x8b, 0x3b, 0x48, 0x01, 0xdf, 0x48, 0x81, 0xe7, 0x00, 0xf0, 0xff, 0xff, 0xbe, 0x00, 0x10, 0x00, 0x00, 0xba, 0x07, 0x00, 0x00, 0x00, 0x50, 0xb8, 0x0a, 0x00, 0x00, 0x00, 0x0f, 0x05, 0x58});
-    code.insert(code.end(), {0x48, 0x8b, 0x0b, 0x48, 0x89, 0x04, 0x0b, 0x48, 0x83, 0xc3, 0x18, 0xeb});
+    code.insert(code.end(), {0x48, 0x8b, 0x3b, 0x48, 0x01, 0xdf, 0x48, 0x81, 0xe7, 0x00, 0xf0, 0xff, 0xff, 0xbe, 0x00, 0x10, 0x00, 0x00, 0x8b, 0x53, 0x18, 0x50, 0xb8, 0x0a, 0x00, 0x00, 0x00, 0x0f, 0x05, 0x58});
+    code.insert(code.end(), {0x48, 0x8b, 0x0b, 0x48, 0x89, 0x04, 0x0b, 0x48, 0x83, 0xc3, 0x20, 0xeb});
     code.push_back(static_cast<std::uint8_t>(static_cast<std::int8_t>(static_cast<std::int64_t>(loop) - static_cast<std::int64_t>(code.size() + 1))));
     code[exit - 1] = static_cast<std::uint8_t>(code.size() - exit);
     code.insert(code.end(), {0x48, 0x83, 0xc4, 0x08, 0x41, 0x5c, 0x5b, 0x5a});
@@ -565,7 +596,7 @@ std::vector<std::uint8_t> LinuxElfPatcher::Patch(
         traceTableVaddr = vaddrOfExtraBlockOffset(buf.size());
         for (std::size_t index = 0; index < traced.size(); ++index) {
             traceEntries.push_back(buf.size());
-            buf.resize(buf.size() + 24);
+            buf.resize(buf.size() + 32);
         }
         traceTableEndVaddr = vaddrOfExtraBlockOffset(buf.size());
         std::map<std::string, std::uint64_t> strings;
@@ -584,6 +615,7 @@ std::vector<std::uint8_t> LinuxElfPatcher::Patch(
             Io::WriteU64(buf, traceEntries[index], relative(traced[index].Slot));
             Io::WriteU64(buf, traceEntries[index] + 8, relative(addString(traced[index].Name)));
             Io::WriteU64(buf, traceEntries[index] + 16, relative(addString(traced[index].Library)));
+            Io::WriteU64(buf, traceEntries[index] + 24, TracePageProtection(headers, traced[index].Slot));
         }
     }
 
