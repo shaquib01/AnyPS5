@@ -2,11 +2,12 @@
 
 ### Functional
 
+- [`cairo_format_stride_for_width`](../../../core/libs/prx/libcairo/Export.cpp) - Computes Cairo's 4-byte-aligned image row stride for ARGB32, RGB24, A8, A1, RGB16_565, RGB30, RGB96F and RGBA128F; rejects invalid formats and widths that overflow the Cairo 1.18 guard. Focused guest-ABI tests cover all formats, alignment and invalid inputs. The Cairo error-status side effect for invalid formats is not yet wired into a PS5-compatible error state.
 - [`cairo_glyph_free`](../../../core/libs/prx/libcairo/Export.cpp) - Releases glyph arrays with the C allocator, matching Cairo 1.18.x `cairo-misc.c`. The public function accepts a glyph-array pointer and permits `NULL`; PS5-specific allocator provenance has not been verified on hardware. A focused guest-ABI test covers null and allocated pointers.
 
 ### Callable exports
 
-- [Callable exports](../../../core/libs/prx/libcairo/Export.cpp) - 160 remaining callable NIDs match the [public 3.20 catalogue](https://github.com/DNNDHH/PS5-3.20_Libs/blob/b2a77c09cd71c01f34c790cfbe98c751a13262ad/libcairo.c) and the [selected export metadata](https://gist.github.com/kyon-eth/a0bb48f2b3070a5eac8a638810f195f2/a3838ac54ebcc0bbfeb3cc46002a9a2dcce4dbdc) from two version-labelled images (SHA-256 `ec2158e0c5875316d200037d7f4bc48861626451752523f6930d687307c75ef8`). The labels are not authenticated. Prototypes and behavior are unverified; these declarations throw through `NotImplemented_nid_no_patch` and implement no runtime functionality.
+- [Callable exports](../../../core/libs/prx/libcairo/Export.cpp) - 159 remaining callable NIDs match the [public 3.20 catalogue](https://github.com/DNNDHH/PS5-3.20_Libs/blob/b2a77c09cd71c01f34c790cfbe98c751a13262ad/libcairo.c) and the [selected export metadata](https://gist.github.com/kyon-eth/a0bb48f2b3070a5eac8a638810f195f2/a3838ac54ebcc0bbfeb3cc46002a9a2dcce4dbdc) from two version-labelled images (SHA-256 `ec2158e0c5875316d200037d7f4bc48861626451752523f6930d687307c75ef8`). The labels are not authenticated. Prototypes and behavior are unverified; these declarations throw through `NotImplemented_nid_no_patch` and implement no runtime functionality.
 
 | Name | NID |
 | --- | --- |
