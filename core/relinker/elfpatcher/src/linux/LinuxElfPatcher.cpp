@@ -300,6 +300,8 @@ Domain::SysVDynamicSection ImportsByNid(Domain::SysVDynamicSection dynSection) {
 
 std::uint64_t TracePageProtection(const std::vector<Domain::ProgramHeader>& headers, const std::uint64_t slot) {
     const auto page = slot & ~(kLinuxPageSize - 1);
+    if (page > std::numeric_limits<std::uint64_t>::max() - kLinuxPageSize)
+        throw Domain::RelinkerException("Import slot page overflows while tracing imports", slot);
     const auto pageEnd = page + kLinuxPageSize;
     bool executable = false;
     for (const auto& header : headers) {
@@ -308,11 +310,8 @@ std::uint64_t TracePageProtection(const std::vector<Domain::ProgramHeader>& head
         if (header.MappedAddress > std::numeric_limits<std::uint64_t>::max() - header.MemorySize)
             throw Domain::RelinkerException("PT_LOAD memory range overflows while tracing imports", header.MappedAddress);
         const auto end = header.MappedAddress + header.MemorySize;
-        const auto effectiveFlags = header.Flags == 0 ? (PF_R | PF_W | PF_X) : (header.Flags | PF_R);
-        if (header.MappedAddress < pageEnd && end > page && (effectiveFlags & PF_X) != 0) {
-            executable = true;
-            break;
-        }
+        if (header.MappedAddress < pageEnd && end > page)
+            executable = (header.Flags & PF_X) != 0;
     }
     return kMprotectRead | kMprotectWrite | (executable ? kMprotectExecute : 0);
 }
