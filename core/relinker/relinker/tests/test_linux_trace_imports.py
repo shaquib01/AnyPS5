@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+import struct
 import platform
 import subprocess
 import sys
@@ -19,6 +20,35 @@ HOOK = ("#include <string.h>\n"
         "}\n")
 PLAIN = "int Unrelated(void) { return 0; }\n"
 
+
+PERMISSION_PROVIDER = r"""
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+int shared(void* slot) {
+    FILE* maps = fopen("/proc/self/maps", "r");
+    char line[256], permissions[5];
+    unsigned long start, end;
+    if (!maps) _exit(92);
+    while (fgets(line, sizeof(line), maps)) {
+        if (sscanf(line, "%lx-%lx %4s", &start, &end, permissions) == 3
+            && (uintptr_t)slot >= start && (uintptr_t)slot < end) {
+            fclose(maps);
+            _exit(permissions[2] == 'x' ? 90 : 11);
+        }
+    }
+    fclose(maps);
+    _exit(91);
+}
+"""
+PASSTHROUGH_HOOK = r"""
+void* TraceImport_nid_no_patch(void* target, const char* name, const char* library) {
+    (void)name;
+    (void)library;
+    return target;
+}
+"""
 
 def relink(relinker, source, output, *options):
     return subprocess.run([str(relinker), "--skip-sce-module", *options, str(source), str(output)],
@@ -40,7 +70,7 @@ def main():
         work = Path(directory)
         libraries = {}
         if runnable:
-            libraries = {name: library(work, name, code) for name, code in (("a", PROVIDER), ("hook", HOOK), ("plain", PLAIN))}
+            libraries = {name: library(work, name, code) for name, code in (("a", PROVIDER), ("hook", HOOK), ("plain", PLAIN), ("permission", PERMISSION_PROVIDER), ("passthrough", PASSTHROUGH_HOOK))}
 
         for name, options, libc, symbol_info, expected in (
                 ("untraced", (), "hook", 0x12, 11),
@@ -68,6 +98,39 @@ def main():
             if expected is None:
                 assert run.returncode != 0 and "TraceImport_nid_no_patch" in run.stderr, (name, run.returncode, run.stdout, run.stderr)
             else:
+                assert run.returncode == expected, (name, run.returncode, run.stdout, run.stderr)
+
+
+        if runnable:
+            for name, base, non_executable in (
+                    ("permission-default", 0x400000, True),
+                    ("permission-fixed", 0x400000, True),
+                    ("permission-above-4g", 0x1000000000, True),
+                    ("permission-executable-page", 0x400000, False)):
+                case = work / name
+                case.mkdir()
+                image = executable("a.prx", extra_dependencies=("libc.prx",))
+                slot = 0x5a20 if non_executable else 0x4a20
+                struct.pack_into("<Q", image, 0x4900, slot)
+                if non_executable:
+                    struct.pack_into("<IIQQQQQQ", image, 64 + 2 * 56,
+                                     1, 6, 0x5000, 0x5000, 0x5000, 0x1000, 0x1000, 0x1000)
+                image[0x4000:0x4011] = (bytes.fromhex("48 bf") + struct.pack("<Q", base + slot)
+                                        + bytes.fromhex("ff 15") + struct.pack("<i", slot - 0x4010) + bytes.fromhex("c3"))
+                source = case / "input.elf"
+                source.write_bytes(image)
+                output = case / "output.elf"
+                options = ("--trace-imports",)
+                if name != "permission-default":
+                    options += ("--linux-fixed-base", hex(base))
+                result = relink(relinker, source, output, *options)
+                assert result.returncode == 0, (name, result.stdout, result.stderr)
+                (case / "libs").mkdir()
+                (case / "libs" / "a.prx").write_bytes(libraries["permission"])
+                (case / "libs" / "libc.prx").write_bytes(libraries["passthrough"])
+                output.chmod(0o755)
+                run = subprocess.run([str(output)], capture_output=True, text=True, timeout=30)
+                expected = 11 if non_executable else 90
                 assert run.returncode == expected, (name, run.returncode, run.stdout, run.stderr)
 
         case = work / "without-libc"
